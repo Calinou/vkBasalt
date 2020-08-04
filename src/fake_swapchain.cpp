@@ -4,6 +4,23 @@
 
 namespace vkBasalt
 {
+    void
+    createFakeSwapchainImages2(LogicalDevice* pLogicalDevice, VkSwapchainCreateInfoKHR* pSwapchainCreateInfo, uint32_t count, VkBasaltImage* pImages)
+    {
+        // TODO what usage do we need?
+        VkImageUsage ourUsage = | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        VkBasaltImageInfo imageInfo;
+        imageInfo.extent.width  = pSwapchainCreateInfo->imageExtent.width;
+        imageInfo.extent.height = pSwapchainCreateInfo->imageExtent.height;
+        imageInfo.extent.depth  = 1;
+        imageInfo.format        = pSwapchainCreateInfo->imageFormat;
+        imageInfo.usage         = pSwapchainCreateInfo->imageUsage | ourUsage;
+        imageInfo.mipLevels     = 1;
+
+        createImages2(pLogicalDevice, &imageInfo, count, pImages);
+    }
+
     std::vector<VkImage> createFakeSwapchainImages(LogicalDevice*           pLogicalDevice,
                                                    VkSwapchainCreateInfoKHR swapchainCreateInfo,
                                                    uint32_t                 count,
