@@ -1,10 +1,88 @@
 #include "image.hpp"
+
+#include <array>
+
 #include "memory.hpp"
 #include "buffer.hpp"
 #include "format.hpp"
 
 namespace vkBasalt
 {
+    void createImage2(LogicalDevice* pLogicalDevice, VkBasaltImageInfo* pCreateInfo, VkBasaltImage* pImage)
+    {
+        std::array<VkFormat, 2> formats;
+        bool                    mutableFormat = true;
+        {
+            VkFormat format = pCreateInfo->format;
+
+            VkFormat srgbFormat  = isSRGB(format) ? format : convertToSRGB(format);
+            VkFormat unormFormat = isSRGB(format) ? convertToUNORM(format) : format;
+
+            formats = {unormFormat, srgbFormat};
+
+            if (unormFormat == srgbFormat)
+                mutableFormat = false;
+        }
+
+        VkImageFormatListCreateInfoKHR imageFormatListCreateInfo;
+        imageFormatListCreateInfo.sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR;
+        imageFormatListCreateInfo.pNext           = nullptr;
+        imageFormatListCreateInfo.viewFormatCount = formats.size();
+        imageFormatListCreateInfo.pViewFormats    = formats.data();
+
+        VkImageCreateInfo imageCreateInfo;
+
+        imageCreateInfo.sType     = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.pNext     = mutableFormat ? nullptr : &imageFormatListCreateInfo;
+        imageCreateInfo.flags     = mutableFormat ? 0 : VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+        imageCreateInfo.imageType = (pCreateInfo->extent.depth == 1) ? VK_IMAGE_TYPE_2D : VK_IMAGE_TYPE_3D;
+
+        imageCreateInfo.format                = pCreateInfo->format;
+        imageCreateInfo.extent                = pCreateInfo->extent;
+        imageCreateInfo.mipLevels             = pCreateInfo->mipLevels;
+        imageCreateInfo.arrayLayers           = 1;
+        imageCreateInfo.samples               = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.tiling                = VK_IMAGE_TILING_OPTIMAL;
+        imageCreateInfo.usage                 = pCreateInfo->usage;
+        imageCreateInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+        imageCreateInfo.queueFamilyIndexCount = 0;
+        imageCreateInfo.pQueueFamilyIndices   = nullptr;
+        imageCreateInfo.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        VkResult result = pLogicalDevice->vkd.CreateImage(pLogicalDevice->device, &imageCreateInfo, nullptr, &pImage->image);
+        ASSERT_VULKAN(result);
+
+        VkMemoryRequirements memoryRequirements;
+        pLogicalDevice->vkd.GetImageMemoryRequirements(pLogicalDevice->device, pImage->image, &memoryRequirements);
+
+        VkMemoryDedicatedAllocateInfo dedicatedInfo;
+        dedicatedInfo.sType  = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
+        dedicatedInfo.pNext  = nullptr;
+        dedicatedInfo.image  = pImage->image;
+        dedicatedInfo.buffer = VK_NULL_HANDLE;
+
+        VkMemoryAllocateInfo memoryAllocateInfo;
+        memoryAllocateInfo.sType          = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memoryAllocateInfo.pNext          = &dedicatedInfo;
+        memoryAllocateInfo.allocationSize = memoryRequirements.size;
+        memoryAllocateInfo.memoryTypeIndex =
+            findMemoryTypeIndex(pLogicalDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        result = pLogicalDevice->vkd.AllocateMemory(pLogicalDevice->device, &memoryAllocateInfo, nullptr, &pImage->memory);
+        ASSERT_VULKAN(result);
+
+        result = pLogicalDevice->vkd.BindImageMemory(pLogicalDevice->device, pImage->image, pImage->memory, 0);
+        ASSERT_VULKAN(result);
+    }
+
+    void createImages2(LogicalDevice* pLogicalDevice, VkBasaltImageInfo* pCreateInfo, uint32_t count, VkBasaltImage* pImages)
+    {
+        for (uint32_t i = 0; i < count; i++)
+        {
+            createImage2(pLogicalDevice, pCreateInfo, pImages + i);
+        }
+    }
+
     std::vector<VkImage> createImages(LogicalDevice*        pLogicalDevice,
                                       uint32_t              count,
                                       VkExtent3D            extent,

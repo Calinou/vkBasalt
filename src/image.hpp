@@ -14,6 +14,23 @@
 
 namespace vkBasalt
 {
+    struct VkBasaltImage
+    {
+        VkImage        image  = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+    };
+
+    struct VkBasaltImageInfo
+    {
+        VkExtent3D        extent;
+        VkFormat          format;
+        VkImageUsageFlags usage;
+        uint32_t          mipLevels = 1;
+    };
+
+    void createImage2(LogicalDevice* pLogicalDevice, VkBasaltImageInfo* pCreateInfo, VkBasaltImage* pImage);
+    void createImages2(LogicalDevice* pLogicalDevice, VkBasaltImageInfo* pCreateInfo, uint32_t count, VkBasaltImage* pImages);
+
     std::vector<VkImage> createImages(LogicalDevice*        pLogicalDevice,
                                       uint32_t              count,
                                       VkExtent3D            extent,
