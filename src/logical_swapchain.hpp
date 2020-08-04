@@ -13,6 +13,8 @@
 
 #include "logical_device.hpp"
 
+#include "image.hpp"
+
 namespace vkBasalt
 {
     // for each swapchain, we have the Images and the other stuff we need to execute the compute shader
@@ -24,13 +26,12 @@ namespace vkBasalt
         VkFormat                             format;
         uint32_t                             imageCount;
         std::vector<VkImage>                 images;
-        std::vector<VkImage>                 fakeImages;
+        std::vector<VkBasaltImage>           fakeImages;
         std::vector<VkCommandBuffer>         commandBuffersEffect;
         std::vector<VkCommandBuffer>         commandBuffersNoEffect;
         std::vector<VkSemaphore>             semaphores;
         std::vector<std::shared_ptr<Effect>> effects;
         std::shared_ptr<Effect>              defaultTransfer;
-        VkDeviceMemory                       fakeImageMemory;
 
         void destroy();
     };

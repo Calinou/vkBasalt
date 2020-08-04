@@ -8,7 +8,7 @@ namespace vkBasalt
     createFakeSwapchainImages2(LogicalDevice* pLogicalDevice, VkSwapchainCreateInfoKHR* pSwapchainCreateInfo, uint32_t count, VkBasaltImage* pImages)
     {
         // TODO what usage do we need?
-        VkImageUsage ourUsage = | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        VkImageUsageFlags ourUsage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         VkBasaltImageInfo imageInfo;
         imageInfo.extent.width  = pSwapchainCreateInfo->imageExtent.width;

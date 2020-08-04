@@ -18,6 +18,13 @@ namespace vkBasalt
     {
         VkImage        image  = VK_NULL_HANDLE;
         VkDeviceMemory memory = VK_NULL_HANDLE;
+
+        inline void destroy(LogicalDevice* pLogicalDevice)
+        {
+            pLogicalDevice->vkd.FreeMemory(pLogicalDevice->device, memory, nullptr);
+
+            pLogicalDevice->vkd.DestroyImage(pLogicalDevice->device, image, nullptr);
+        }
     };
 
     struct VkBasaltImageInfo

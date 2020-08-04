@@ -406,10 +406,14 @@ namespace vkBasalt
         // If the images got already requested once, return them again instead of creating new images
         if (pLogicalSwapchain->fakeImages.size())
         {
-            std::memcpy(pSwapchainImages, pLogicalSwapchain->fakeImages.data(), sizeof(VkImage) * (*pCount));
-            return VK_SUCCESS;
+            for (uint32_t i = 0; i < *pCount; i++)
+            {
+                pSwapchainImages[i] = pLogicalSwapchain->fakeImages[i].image;
+            }
+            return (*pCount < pLogicalSwapchain->imageCount) ? VK_INCOMPLETE : VK_SUCCESS;
         }
 
+        // TODO fix incomplete count
         pLogicalSwapchain->imageCount = *pCount;
         pLogicalSwapchain->images.reserve(*pCount);
 
@@ -418,15 +422,17 @@ namespace vkBasalt
         // create 1 more set of images when we can't use the swapchain it self
         uint32_t fakeImageCount = *pCount * (effectStrings.size() + !pLogicalDevice->supportsMutableFormat);
 
-        pLogicalSwapchain->fakeImages =
-            createFakeSwapchainImages(pLogicalDevice, pLogicalSwapchain->swapchainCreateInfo, fakeImageCount, pLogicalSwapchain->fakeImageMemory);
+        pLogicalSwapchain->fakeImages = std::vector<VkBasaltImage>(fakeImageCount);
+
+        createFakeSwapchainImages2(pLogicalDevice, &pLogicalSwapchain->swapchainCreateInfo, fakeImageCount, pLogicalSwapchain->fakeImages.data());
+
         Logger::debug("created fake swapchain images");
 
         VkResult result = pLogicalDevice->vkd.GetSwapchainImagesKHR(device, swapchain, pCount, pSwapchainImages);
-        for (unsigned int i = 0; i < *pCount; i++)
+        for (uint32_t i = 0; i < *pCount; i++)
         {
             pLogicalSwapchain->images.push_back(pSwapchainImages[i]);
-            pSwapchainImages[i] = pLogicalSwapchain->fakeImages[i];
+            pSwapchainImages[i] = pLogicalSwapchain->fakeImages[i].image;
         }
 
         VkFormat unormFormat = convertToUNORM(pLogicalSwapchain->format);
@@ -435,22 +441,37 @@ namespace vkBasalt
         for (uint32_t i = 0; i < effectStrings.size(); i++)
         {
             Logger::debug("current effectString " + effectStrings[i]);
-            std::vector<VkImage> firstImages(pLogicalSwapchain->fakeImages.begin() + pLogicalSwapchain->imageCount * i,
-                                             pLogicalSwapchain->fakeImages.begin() + pLogicalSwapchain->imageCount * (i + 1));
+
+            std::vector<VkImage> firstImages(pLogicalSwapchain->imageCount);
+
+            for (uint32_t j = 0; j < pLogicalSwapchain->imageCount; j++)
+            {
+                firstImages[j] = pLogicalSwapchain->fakeImages[pLogicalSwapchain->imageCount * i + j].image;
+            }
+
             Logger::debug(std::to_string(firstImages.size()) + " images in firstImages");
             std::vector<VkImage> secondImages;
             if (i == effectStrings.size() - 1)
             {
-                secondImages = pLogicalDevice->supportsMutableFormat
-                                   ? pLogicalSwapchain->images
-                                   : std::vector<VkImage>(pLogicalSwapchain->fakeImages.end() - pLogicalSwapchain->imageCount,
-                                                          pLogicalSwapchain->fakeImages.end());
+                std::vector<VkImage> fallback;
+
+                uint32_t fakeSize = pLogicalSwapchain->fakeImages.size();
+                Logger::debug(std::to_string(fakeSize));
+                for (uint32_t j = fakeSize - pLogicalSwapchain->imageCount; j < fakeSize; j++)
+                {
+                    Logger::debug(std::to_string(j));
+                    fallback.push_back(pLogicalSwapchain->fakeImages[j].image);
+                }
+
+                secondImages = pLogicalDevice->supportsMutableFormat ? pLogicalSwapchain->images : fallback;
                 Logger::debug("using swapchain images as second images");
             }
             else
             {
-                secondImages = std::vector<VkImage>(pLogicalSwapchain->fakeImages.begin() + pLogicalSwapchain->imageCount * (i + 1),
-                                                    pLogicalSwapchain->fakeImages.begin() + pLogicalSwapchain->imageCount * (i + 2));
+                for (uint32_t j = pLogicalSwapchain->imageCount * (i + 1); j < pLogicalSwapchain->imageCount * (i + 2); j++)
+                {
+                    secondImages.push_back(pLogicalSwapchain->fakeImages[j].image);
+                }
                 Logger::debug("not using swapchain images as second images");
             }
             Logger::debug(std::to_string(secondImages.size()) + " images in secondImages");
@@ -505,13 +526,16 @@ namespace vkBasalt
 
         if (!pLogicalDevice->supportsMutableFormat)
         {
+            std::vector<VkImage> lastImages;
+
+            uint32_t fakeSize = pLogicalSwapchain->fakeImages.size();
+            for (uint32_t j = fakeSize - pLogicalSwapchain->imageCount - 1; fakeSize - 1; j++)
+            {
+                lastImages.push_back(pLogicalSwapchain->fakeImages[j].image);
+            }
+
             pLogicalSwapchain->effects.push_back(std::shared_ptr<Effect>(new TransferEffect(
-                pLogicalDevice,
-                pLogicalSwapchain->format,
-                pLogicalSwapchain->imageExtent,
-                std::vector<VkImage>(pLogicalSwapchain->fakeImages.end() - pLogicalSwapchain->imageCount, pLogicalSwapchain->fakeImages.end()),
-                pLogicalSwapchain->images,
-                pConfig.get())));
+                pLogicalDevice, pLogicalSwapchain->format, pLogicalSwapchain->imageExtent, lastImages, pLogicalSwapchain->images, pConfig.get())));
         }
 
         VkImageView depthImageView = pLogicalDevice->depthImageViews.size() ? pLogicalDevice->depthImageViews[0] : VK_NULL_HANDLE;
@@ -537,28 +561,31 @@ namespace vkBasalt
         }
         Logger::trace("vkGetSwapchainImagesKHR");
 
+        std::vector<VkImage> startImages(pLogicalSwapchain->imageCount);
+
+        for (uint32_t i = 0; i < pLogicalSwapchain->imageCount; i++)
+        {
+            startImages[i] = pLogicalSwapchain->fakeImages[i].image;
+        }
+
+        Logger::trace("test");
         pLogicalSwapchain->defaultTransfer = std::shared_ptr<Effect>(new TransferEffect(
-            pLogicalDevice,
-            pLogicalSwapchain->format,
-            pLogicalSwapchain->imageExtent,
-            std::vector<VkImage>(pLogicalSwapchain->fakeImages.begin(), pLogicalSwapchain->fakeImages.begin() + pLogicalSwapchain->imageCount),
-            pLogicalSwapchain->images,
-            pConfig.get()));
-
+            pLogicalDevice, pLogicalSwapchain->format, pLogicalSwapchain->imageExtent, startImages, pLogicalSwapchain->images, pConfig.get()));
+        Logger::trace("test");
         pLogicalSwapchain->commandBuffersNoEffect = allocateCommandBuffer(pLogicalDevice, pLogicalSwapchain->imageCount);
-
+        Logger::trace("test");
         writeCommandBuffers(pLogicalDevice,
                             {pLogicalSwapchain->defaultTransfer},
                             VK_NULL_HANDLE,
                             VK_NULL_HANDLE,
                             VK_FORMAT_UNDEFINED,
                             pLogicalSwapchain->commandBuffersNoEffect);
-
+        Logger::trace("test");
         for (unsigned int i = 0; i < pLogicalSwapchain->imageCount; i++)
         {
             Logger::debug(std::to_string(i) + " written commandbuffer " + convertToString(pLogicalSwapchain->commandBuffersNoEffect[i]));
         }
-
+        Logger::trace("test");
         return result;
     }
 
