@@ -3,6 +3,9 @@ subdir('reshade')
 
 vkBasalt_src = [
     'basalt.cpp',
+    'basalt_device.cpp',
+    'basalt_instance.cpp',
+    'logger.cpp',
 ]
 
 x11_dep = dependency('x11')
