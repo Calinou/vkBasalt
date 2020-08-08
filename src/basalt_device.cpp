@@ -4,12 +4,8 @@
 
 namespace vkBasalt
 {
-    VkBasaltDevice::VkBasaltDevice(const VkBasaltInstance* basaltInstance,
-                                   VkPhysicalDevice        _physDevice,
-                                   VkDevice                _device,
-                                   PFN_vkGetDeviceProcAddr gdpa) :
-        instance(basaltInstance),
-        device(_device), physDevice(_physDevice)
+    VkBasaltDevice::VkBasaltDevice(const VkBasaltInstance* basaltInstance, VkPhysicalDevice physDevice, VkDevice device) :
+        m_instance(basaltInstance), m_device(device), m_physDevice(physDevice)
     {
         this->vk = instance->vk;
         initDeviceTable(gdpa, device, &this->vk);

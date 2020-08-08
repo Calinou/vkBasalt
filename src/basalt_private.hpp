@@ -77,18 +77,38 @@ namespace vkBasalt
     class VkBasaltDevice
     {
     public:
-        VulkanDispatchTable     vk;
-        const VkBasaltInstance* instance;
-        const VkDevice          device;
-        const VkPhysicalDevice  physDevice;
-
         VkBasaltDevice(const VkBasaltDevice& other) = delete;
         VkBasaltDevice& operator=(const VkBasaltDevice& other) = delete;
         VkBasaltDevice(VkBasaltDevice&& other)                 = delete;
         VkBasaltDevice& operator=(VkBasaltDevice&& other) = delete;
 
+        inline const VulkanDispatchTable& vk() const
+        {
+            return m_dispatch;
+        }
+
+        inline VkDevice get() const
+        {
+            return m_device;
+        }
+
+        inline const VkBasaltInstance* instance() const
+        {
+            return m_instance;
+        }
+
+        inline VkPhysicalDevice physDevice() const
+        {
+            return m_physDevice;
+        }
+
     private:
-        VkBasaltDevice(const VkBasaltInstance* basaltInstance, VkPhysicalDevice _physDevice, VkDevice _device, PFN_vkGetDeviceProcAddr gdpa);
+        VulkanDispatchTable     m_dispatch;
+        const VkBasaltInstance* m_instance;
+        const VkDevice          m_device;
+        const VkPhysicalDevice  m_physDevice;
+
+        VkBasaltDevice(const VkBasaltInstance* basaltInstance, VkPhysicalDevice physDevice, VkDevice device);
         ~VkBasaltDevice();
 
         friend VkResult VkBasaltInstance::createDevice(VkPhysicalDevice             physDevice,

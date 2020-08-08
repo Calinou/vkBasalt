@@ -95,7 +95,7 @@ namespace vkBasalt
         if (ret != VK_SUCCESS)
             return ret;
 
-        *pDevice = basaltDevice->device;
+        *pDevice = basaltDevice->get();
 
         g_deviceMap[(*pDevice)->key] = basaltDevice;
 
@@ -111,7 +111,7 @@ namespace vkBasalt
 
         g_deviceMap.erase(device->key);
 
-        basaltDevice->instance->destroyDevice(basaltDevice, pAllocator);
+        basaltDevice->instance()->destroyDevice(basaltDevice, pAllocator);
     }
 
 } // namespace vkBasalt
@@ -156,7 +156,7 @@ extern "C"
             return layerFunc;
 
         auto basaltDevice = getBasaltDevice(device->key);
-        return basaltDevice->vk.GetDeviceProcAddr(device, pName);
+        return basaltDevice->vk().GetDeviceProcAddr(device, pName);
     }
 
     VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL vkBasalt_GetInstanceProcAddr(VkInstance instance, const char* pName)

@@ -79,14 +79,14 @@ namespace vkBasalt
         if (res != VK_SUCCESS)
             return res;
 
-        *basaltDevice = new VkBasaltDevice(this, physDevice, device, m_dispatch.GetDeviceProcAddr);
+        *basaltDevice = new VkBasaltDevice(this, physDevice, device);
 
         return VK_SUCCESS;
     }
 
     void VkBasaltInstance::destroyDevice(VkBasaltDevice* basaltDevice, const VkAllocationCallbacks* pAllocator) const
     {
-        VkDevice device = basaltDevice->device;
+        VkDevice device = basaltDevice->get();
 
         delete basaltDevice;
 
