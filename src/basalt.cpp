@@ -52,7 +52,7 @@ namespace vkBasalt
         if (ret != VK_SUCCESS)
             return ret;
 
-        *pInstance = basaltInstance->instance;
+        *pInstance = basaltInstance->get();
 
         g_instanceMap[(*pInstance)->key] = basaltInstance;
 
@@ -170,6 +170,6 @@ extern "C"
             return layerFunc;
 
         auto basaltInstance = getBasaltInstance(instance->key);
-        return basaltInstance->vk.GetInstanceProcAddr(instance, pName);
+        return basaltInstance->vk().GetInstanceProcAddr(instance, pName);
     }
 }

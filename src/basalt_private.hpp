@@ -37,9 +37,6 @@ namespace vkBasalt
     class VkBasaltInstance
     {
     public:
-        VulkanDispatchTable vk;
-        const VkInstance    instance;
-
         static VkResult createInstance(const VkInstanceCreateInfo*  pCreateInfo,
                                        const VkAllocationCallbacks* pAllocator,
                                        PFN_vkGetInstanceProcAddr    gipa,
@@ -52,6 +49,16 @@ namespace vkBasalt
         VkBasaltInstance(VkBasaltInstance&& other)                 = delete;
         VkBasaltInstance& operator=(VkBasaltInstance&& other) = delete;
 
+        inline const VulkanDispatchTable& vk() const
+        {
+            return m_dispatch;
+        }
+
+        inline VkInstance get() const
+        {
+            return m_instance;
+        }
+
         VkResult createDevice(VkPhysicalDevice             physDevice,
                               const VkDeviceCreateInfo*    pCreateInfo,
                               const VkAllocationCallbacks* pAllocator,
@@ -60,7 +67,10 @@ namespace vkBasalt
         void destroyDevice(VkBasaltDevice* basaltDevice, const VkAllocationCallbacks* pAllocator) const;
 
     private:
-        VkBasaltInstance(VkInstance _instance, PFN_vkGetInstanceProcAddr gipa);
+        VulkanDispatchTable m_dispatch;
+        const VkInstance    m_instance;
+
+        VkBasaltInstance(VkInstance instance, PFN_vkGetInstanceProcAddr gipa);
         ~VkBasaltInstance();
     };
 

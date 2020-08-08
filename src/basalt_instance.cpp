@@ -48,18 +48,18 @@ namespace vkBasalt
 
     void VkBasaltInstance::destroyInstance(VkBasaltInstance* basaltInstance, const VkAllocationCallbacks* pAllocator)
     {
-        VkInstance instance = basaltInstance->instance;
+        VkInstance instance = basaltInstance->m_instance;
 
-        PFN_vkDestroyInstance destroyFunc = basaltInstance->vk.DestroyInstance;
+        PFN_vkDestroyInstance destroyFunc = basaltInstance->m_dispatch.DestroyInstance;
 
         delete basaltInstance;
 
         destroyFunc(instance, pAllocator);
     }
 
-    VkBasaltInstance::VkBasaltInstance(VkInstance _instance, PFN_vkGetInstanceProcAddr gipa) : instance(_instance)
+    VkBasaltInstance::VkBasaltInstance(VkInstance instance, PFN_vkGetInstanceProcAddr gipa) : m_instance(instance)
     {
-        initInstanceTable(gipa, instance, &this->vk);
+        initInstanceTable(gipa, instance, &m_dispatch);
     }
 
     VkBasaltInstance::~VkBasaltInstance()
@@ -75,11 +75,11 @@ namespace vkBasalt
 
         VkDevice device;
 
-        VkResult res = vk.CreateDevice(physDevice, &ourCreateInfo, pAllocator, &device);
+        VkResult res = m_dispatch.CreateDevice(physDevice, &ourCreateInfo, pAllocator, &device);
         if (res != VK_SUCCESS)
             return res;
 
-        *basaltDevice = new VkBasaltDevice(this, physDevice, device, vk.GetDeviceProcAddr);
+        *basaltDevice = new VkBasaltDevice(this, physDevice, device, m_dispatch.GetDeviceProcAddr);
 
         return VK_SUCCESS;
     }
@@ -90,6 +90,6 @@ namespace vkBasalt
 
         delete basaltDevice;
 
-        vk.DestroyDevice(device, pAllocator);
+        m_dispatch.DestroyDevice(device, pAllocator);
     }
 } // namespace vkBasalt
