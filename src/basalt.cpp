@@ -112,6 +112,72 @@ namespace vkBasalt
         basaltDevice->instance()->destroyDevice(basaltDevice, pAllocator);
     }
 
+    VkResult VKAPI_CALL vkBasalt_EnumerateInstanceLayerProperties(uint32_t* pPropertyCount, VkLayerProperties* pProperties)
+    {
+        if (pPropertyCount)
+            *pPropertyCount = 1;
+
+        if (pProperties)
+        {
+            std::strcpy(pProperties->layerName, LAYER_NAME);
+            std::strcpy(pProperties->description, "test");
+            pProperties->implementationVersion = 1;
+            pProperties->specVersion           = VK_MAKE_VERSION(1, 2, 0);
+        }
+
+        return VK_SUCCESS;
+    }
+
+    VkResult VKAPI_CALL vkBasalt_EnumerateDeviceLayerProperties(VkPhysicalDevice   physicalDevice,
+                                                                uint32_t*          pPropertyCount,
+                                                                VkLayerProperties* pProperties)
+    {
+        return vkBasalt_EnumerateInstanceLayerProperties(pPropertyCount, pProperties);
+    }
+
+    VkResult VKAPI_CALL vkBasalt_EnumerateInstanceExtensionProperties(const char*            pLayerName,
+                                                                      uint32_t*              pPropertyCount,
+                                                                      VkExtensionProperties* pProperties)
+    {
+        if (pLayerName == NULL || std::strcmp(pLayerName, LAYER_NAME))
+        {
+            return VK_ERROR_LAYER_NOT_PRESENT;
+        }
+
+        // don't expose any extensions
+        if (pPropertyCount)
+        {
+            *pPropertyCount = 0;
+        }
+        return VK_SUCCESS;
+    }
+
+    VkResult VKAPI_CALL vkBasalt_EnumerateDeviceExtensionProperties(VkPhysicalDevice       physicalDevice,
+                                                                    const char*            pLayerName,
+                                                                    uint32_t*              pPropertyCount,
+                                                                    VkExtensionProperties* pProperties)
+    {
+        // pass through any queries that aren't to us
+        if (pLayerName == NULL || std::strcmp(pLayerName, LAYER_NAME))
+        {
+            if (physicalDevice == VK_NULL_HANDLE)
+            {
+                return VK_SUCCESS;
+            }
+
+            auto lock = lockGlobally();
+
+            auto basaltInstance = getBasaltInstance(physicalDevice->key);
+            return basaltInstance->vk().EnumerateDeviceExtensionProperties(physicalDevice, pLayerName, pPropertyCount, pProperties);
+        }
+
+        // don't expose any extensions
+        if (pPropertyCount)
+        {
+            *pPropertyCount = 0;
+        }
+        return VK_SUCCESS;
+    }
 } // namespace vkBasalt
 
 extern "C"
@@ -128,15 +194,15 @@ extern "C"
         using namespace vkBasalt;
         /* instance chain functions we intercept */
         GETPROCADDR(GetInstanceProcAddr);
-        // GETPROCADDR(EnumerateInstanceLayerProperties);
-        // GETPROCADDR(EnumerateInstanceExtensionProperties);
+        GETPROCADDR(EnumerateInstanceLayerProperties);
+        GETPROCADDR(EnumerateInstanceExtensionProperties);
         GETPROCADDR(CreateInstance);
         GETPROCADDR(DestroyInstance);
 
         /* device chain functions we intercept*/
         GETPROCADDR(GetDeviceProcAddr);
-        // GETPROCADDR(EnumerateDeviceLayerProperties);
-        // GETPROCADDR(EnumerateDeviceExtensionProperties);
+        GETPROCADDR(EnumerateDeviceLayerProperties);
+        GETPROCADDR(EnumerateDeviceExtensionProperties);
         GETPROCADDR(CreateDevice);
         GETPROCADDR(DestroyDevice);
 
