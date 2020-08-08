@@ -2,6 +2,34 @@
 
 #include "vulkan_include.hpp"
 
+typedef struct InstanceKey_T* InstanceKey;
+typedef struct DeviceKey_T*   DeviceKey;
+
+struct VkInstance_T
+{
+    InstanceKey key;
+};
+
+struct VkPhysicalDevice_T
+{
+    InstanceKey key;
+};
+
+struct VkDevice_T
+{
+    DeviceKey key;
+};
+
+struct VkQueue_T
+{
+    DeviceKey key;
+};
+
+struct VkCommandBuffer_T
+{
+    DeviceKey key;
+};
+
 namespace vkBasalt
 {
     class VkBasaltDevice;

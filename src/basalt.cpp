@@ -17,32 +17,17 @@ namespace vkBasalt
         return std::scoped_lock<std::mutex>(g_lock);
     }
 
-    static std::unordered_map<void*, VkBasaltInstance*> g_instanceMap;
-    static std::unordered_map<void*, VkBasaltDevice*>   g_deviceMap;
+    static std::unordered_map<InstanceKey, VkBasaltInstance*> g_instanceMap;
+    static std::unordered_map<DeviceKey, VkBasaltDevice*>     g_deviceMap;
 
-    static inline VkBasaltInstance* getBasaltInstance(VkInstance instance)
+    static inline VkBasaltInstance* getBasaltInstance(InstanceKey key)
     {
-        return g_instanceMap[*(void**) instance];
+        return g_instanceMap[key];
     }
 
-    static inline VkBasaltInstance* getBasaltInstance(VkPhysicalDevice physDevice)
+    static inline VkBasaltDevice* getBasaltDevice(DeviceKey key)
     {
-        return getBasaltInstance((VkInstance) physDevice);
-    }
-
-    static inline VkBasaltDevice* getBasaltDevice(VkDevice device)
-    {
-        return g_deviceMap[*(void**) device];
-    }
-
-    static inline VkBasaltDevice* getBasaltDevice(VkQueue queue)
-    {
-        return getBasaltDevice((VkDevice) queue);
-    }
-
-    static inline VkBasaltDevice* getBasaltDevice(VkCommandBuffer comBuffer)
-    {
-        return getBasaltDevice((VkDevice) comBuffer);
+        return g_deviceMap[key];
     }
 
     VkResult VKAPI_CALL vkBasalt_CreateInstance(const VkInstanceCreateInfo*  pCreateInfo,
@@ -69,7 +54,7 @@ namespace vkBasalt
 
         *pInstance = basaltInstance->instance;
 
-        g_instanceMap[*(void**) *pInstance] = basaltInstance;
+        g_instanceMap[(*pInstance)->key] = basaltInstance;
 
         return VK_SUCCESS;
     }
@@ -79,9 +64,9 @@ namespace vkBasalt
         Logger::trace("vkDestroyInstance");
         auto lock = lockGlobally();
 
-        auto basaltInstance = getBasaltInstance(instance);
+        auto basaltInstance = getBasaltInstance(instance->key);
 
-        g_instanceMap.erase(*(void**) instance);
+        g_instanceMap.erase(instance->key);
 
         VkBasaltInstance::destroyInstance(basaltInstance, pAllocator);
     }
@@ -94,7 +79,7 @@ namespace vkBasalt
         Logger::trace("vkCreateDevice");
         auto lock = lockGlobally();
 
-        auto basaltInstance = getBasaltInstance(physicalDevice);
+        auto basaltInstance = getBasaltInstance(physicalDevice->key);
 
         auto layerCreateInfo = pNextSearch<VkLayerDeviceCreateInfo>(pCreateInfo->pNext, [](auto x) { return x->function == VK_LAYER_LINK_INFO; });
 
@@ -112,7 +97,7 @@ namespace vkBasalt
 
         *pDevice = basaltDevice->device;
 
-        g_deviceMap[*(void**) *pDevice] = basaltDevice;
+        g_deviceMap[(*pDevice)->key] = basaltDevice;
 
         return VK_SUCCESS;
     }
@@ -122,9 +107,9 @@ namespace vkBasalt
         Logger::trace("vkDestroyDevice");
         auto lock = lockGlobally();
 
-        auto basaltDevice = getBasaltDevice(device);
+        auto basaltDevice = getBasaltDevice(device->key);
 
-        g_deviceMap.erase(*(void**) device);
+        g_deviceMap.erase(device->key);
 
         basaltDevice->instance->destroyDevice(basaltDevice, pAllocator);
     }
@@ -170,7 +155,7 @@ extern "C"
         if (layerFunc)
             return layerFunc;
 
-        auto basaltDevice = getBasaltDevice(device);
+        auto basaltDevice = getBasaltDevice(device->key);
         return basaltDevice->vk.GetDeviceProcAddr(device, pName);
     }
 
@@ -184,7 +169,7 @@ extern "C"
         if (layerFunc)
             return layerFunc;
 
-        auto basaltInstance = getBasaltInstance(instance);
+        auto basaltInstance = getBasaltInstance(instance->key);
         return basaltInstance->vk.GetInstanceProcAddr(instance, pName);
     }
 }
