@@ -7,7 +7,8 @@ namespace vkBasalt
     VkResult VkBasaltInstance::createInstance(const VkInstanceCreateInfo*  pCreateInfo,
                                               const VkAllocationCallbacks* pAllocator,
                                               PFN_vkGetInstanceProcAddr    gipa,
-                                              VkBasaltInstance**           basaltInstance)
+                                              VkBasaltInstance**           basaltInstance,
+                                              VkInstance*                  pInstance)
     {
         VkInstanceCreateInfo ourCreateInfo = *pCreateInfo;
 
@@ -35,13 +36,11 @@ namespace vkBasalt
 
         PFN_vkCreateInstance createFunc = (PFN_vkCreateInstance) gipa(VK_NULL_HANDLE, "vkCreateInstance");
 
-        VkInstance instance;
-
-        VkResult res = createFunc(&ourCreateInfo, pAllocator, &instance);
+        VkResult res = createFunc(&ourCreateInfo, pAllocator, pInstance);
         if (res != VK_SUCCESS)
             return res;
 
-        *basaltInstance = new VkBasaltInstance(instance, gipa);
+        *basaltInstance = new VkBasaltInstance(*pInstance, gipa);
 
         return VK_SUCCESS;
     }
@@ -69,17 +68,17 @@ namespace vkBasalt
     VkResult VkBasaltInstance::createDevice(VkPhysicalDevice             physDevice,
                                             const VkDeviceCreateInfo*    pCreateInfo,
                                             const VkAllocationCallbacks* pAllocator,
-                                            VkBasaltDevice**             basaltDevice) const
+                                            VkBasaltDevice**             basaltDevice,
+                                            VkDevice*                    pDevice,
+                                            PFN_vkGetDeviceProcAddr      gdpa) const
     {
         VkDeviceCreateInfo ourCreateInfo = *pCreateInfo;
 
-        VkDevice device;
-
-        VkResult res = m_dispatch.CreateDevice(physDevice, &ourCreateInfo, pAllocator, &device);
+        VkResult res = m_dispatch.CreateDevice(physDevice, &ourCreateInfo, pAllocator, pDevice);
         if (res != VK_SUCCESS)
             return res;
 
-        *basaltDevice = new VkBasaltDevice(this, physDevice, device);
+        *basaltDevice = new VkBasaltDevice(this, physDevice, *pDevice, gdpa);
 
         return VK_SUCCESS;
     }
@@ -88,8 +87,10 @@ namespace vkBasalt
     {
         VkDevice device = basaltDevice->get();
 
+        PFN_vkDestroyDevice destroyFunc = basaltDevice->vk().DestroyDevice;
+
         delete basaltDevice;
 
-        m_dispatch.DestroyDevice(device, pAllocator);
+        destroyFunc(device, pAllocator);
     }
 } // namespace vkBasalt

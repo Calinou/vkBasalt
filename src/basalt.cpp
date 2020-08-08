@@ -48,11 +48,9 @@ namespace vkBasalt
 
         VkBasaltInstance* basaltInstance;
 
-        VkResult ret = VkBasaltInstance::createInstance(pCreateInfo, pAllocator, gipa, &basaltInstance);
+        VkResult ret = VkBasaltInstance::createInstance(pCreateInfo, pAllocator, gipa, &basaltInstance, pInstance);
         if (ret != VK_SUCCESS)
             return ret;
-
-        *pInstance = basaltInstance->get();
 
         g_instanceMap[(*pInstance)->key] = basaltInstance;
 
@@ -86,16 +84,16 @@ namespace vkBasalt
         if (layerCreateInfo == nullptr)
             return VK_ERROR_INITIALIZATION_FAILED;
 
+        PFN_vkGetDeviceProcAddr gdpa = layerCreateInfo->u.pLayerInfo->pfnNextGetDeviceProcAddr;
+
         // move chain on for next layer
         layerCreateInfo->u.pLayerInfo = layerCreateInfo->u.pLayerInfo->pNext;
 
         VkBasaltDevice* basaltDevice;
 
-        VkResult ret = basaltInstance->createDevice(physicalDevice, pCreateInfo, pAllocator, &basaltDevice);
+        VkResult ret = basaltInstance->createDevice(physicalDevice, pCreateInfo, pAllocator, &basaltDevice, pDevice, gdpa);
         if (ret != VK_SUCCESS)
             return ret;
-
-        *pDevice = basaltDevice->get();
 
         g_deviceMap[(*pDevice)->key] = basaltDevice;
 
