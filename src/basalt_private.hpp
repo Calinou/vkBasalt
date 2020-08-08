@@ -2,8 +2,10 @@
 
 #include "vulkan_include.hpp"
 
-typedef struct InstanceKey_T* InstanceKey;
-typedef struct DeviceKey_T*   DeviceKey;
+struct InstanceKey_T;
+struct DeviceKey_T;
+using InstanceKey = InstanceKey_T*;
+using DeviceKey   = DeviceKey_T*;
 
 struct VkInstance_T
 {
