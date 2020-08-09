@@ -1,5 +1,7 @@
 #include "basalt_private.hpp"
 
+#include <algorithm>
+
 #include "generated/vulkan_dispatch_init.hpp"
 
 namespace vkBasalt
@@ -73,6 +75,20 @@ namespace vkBasalt
                                             PFN_vkGetDeviceProcAddr      gdpa) const
     {
         VkDeviceCreateInfo ourCreateInfo = *pCreateInfo;
+
+        std::vector<const char*> exts(ourCreateInfo.ppEnabledExtensionNames,
+                                      ourCreateInfo.ppEnabledExtensionNames + ourCreateInfo.enabledExtensionCount);
+
+        auto addExt = [&exts](const char* newExt) {
+            if (std::find(exts.begin(), exts.end(), newExt) == exts.end())
+                exts.push_back(newExt);
+        };
+
+        addExt("VK_KHR_image_format_list");
+        addExt("VK_KHR_swapchain_mutable_format");
+
+        ourCreateInfo.ppEnabledExtensionNames = exts.data();
+        ourCreateInfo.enabledExtensionCount   = exts.size();
 
         VkResult res = m_dispatch.CreateDevice(physDevice, &ourCreateInfo, pAllocator, pDevice);
         if (res != VK_SUCCESS)
