@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <lazy_allocator.hpp>
+
 #include "generated/vulkan_dispatch_init.hpp"
 
 namespace vkBasalt
@@ -67,34 +69,21 @@ namespace vkBasalt
     {
     }
 
-    VkResult VkBasaltInstance::createDevice(VkPhysicalDevice             physDevice,
-                                            const VkDeviceCreateInfo*    pCreateInfo,
-                                            const VkAllocationCallbacks* pAllocator,
-                                            VkBasaltDevice**             basaltDevice,
-                                            VkDevice*                    pDevice,
-                                            PFN_vkGetDeviceProcAddr      gdpa) const
+    VkResult VkBasaltInstance::createDevice(VkBasaltDeviceCreateInfo* createInfo, VkBasaltDevice** basaltDevice) const
     {
-        VkDeviceCreateInfo ourCreateInfo = *pCreateInfo;
+        VkBasaltDeviceCreateInfo ourCreateInfo    = *createInfo;
+        VkDeviceCreateInfo       deviceCreateInfo = *createInfo->pCreateInfo;
+        ourCreateInfo.pCreateInfo                 = &deviceCreateInfo;
 
-        std::vector<const char*> exts(ourCreateInfo.ppEnabledExtensionNames,
-                                      ourCreateInfo.ppEnabledExtensionNames + ourCreateInfo.enabledExtensionCount);
+        LazyAllocator allocator;
 
-        auto addExt = [&exts](const char* newExt) {
-            if (std::find(exts.begin(), exts.end(), newExt) == exts.end())
-                exts.push_back(newExt);
-        };
+        activateDeviceExtensions(this, ourCreateInfo.physDevice, &allocator, &deviceCreateInfo);
 
-        addExt("VK_KHR_image_format_list");
-        addExt("VK_KHR_swapchain_mutable_format");
-
-        ourCreateInfo.ppEnabledExtensionNames = exts.data();
-        ourCreateInfo.enabledExtensionCount   = exts.size();
-
-        VkResult res = m_dispatch.CreateDevice(physDevice, &ourCreateInfo, pAllocator, pDevice);
+        VkResult res = m_dispatch.CreateDevice(ourCreateInfo.physDevice, &deviceCreateInfo, ourCreateInfo.pAllocator, ourCreateInfo.pDevice);
         if (res != VK_SUCCESS)
             return res;
 
-        *basaltDevice = new VkBasaltDevice(this, physDevice, *pDevice, gdpa);
+        *basaltDevice = new VkBasaltDevice(this, &ourCreateInfo);
 
         return VK_SUCCESS;
     }

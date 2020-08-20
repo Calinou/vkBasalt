@@ -91,7 +91,15 @@ namespace vkBasalt
 
         VkBasaltDevice* basaltDevice;
 
-        VkResult ret = basaltInstance->createDevice(physicalDevice, pCreateInfo, pAllocator, &basaltDevice, pDevice, gdpa);
+        VkBasaltDeviceCreateInfo basaltCreateInfo = {
+            .physDevice  = physicalDevice,
+            .pCreateInfo = pCreateInfo,
+            .pAllocator  = pAllocator,
+            .gdpa        = gdpa,
+            .pDevice     = pDevice,
+        };
+
+        VkResult ret = basaltInstance->createDevice(&basaltCreateInfo, &basaltDevice);
         if (ret != VK_SUCCESS)
             return ret;
 

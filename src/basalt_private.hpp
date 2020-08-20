@@ -34,7 +34,18 @@ struct VkCommandBuffer_T
 
 namespace vkBasalt
 {
+    class LazyAllocator;
+    class VkBasaltInstance;
     class VkBasaltDevice;
+
+    struct VkBasaltDeviceCreateInfo
+    {
+        VkPhysicalDevice             physDevice;
+        const VkDeviceCreateInfo*    pCreateInfo;
+        const VkAllocationCallbacks* pAllocator;
+        PFN_vkGetDeviceProcAddr      gdpa;
+        VkDevice*                    pDevice;
+    };
 
     class VkBasaltInstance
     {
@@ -62,12 +73,7 @@ namespace vkBasalt
             return m_instance;
         }
 
-        VkResult createDevice(VkPhysicalDevice             physDevice,
-                              const VkDeviceCreateInfo*    pCreateInfo,
-                              const VkAllocationCallbacks* pAllocator,
-                              VkBasaltDevice**             basaltDevice,
-                              VkDevice*                    pDevice,
-                              PFN_vkGetDeviceProcAddr      gdpa) const;
+        VkResult createDevice(VkBasaltDeviceCreateInfo* createInfo, VkBasaltDevice** basaltDevice) const;
 
         void destroyDevice(VkBasaltDevice* basaltDevice, const VkAllocationCallbacks* pAllocator) const;
 
@@ -78,6 +84,11 @@ namespace vkBasalt
         VkBasaltInstance(VkInstance instance, PFN_vkGetInstanceProcAddr gipa);
         ~VkBasaltInstance();
     };
+
+    void activateDeviceExtensions(const VkBasaltInstance* instance,
+                                  VkPhysicalDevice        physDevice,
+                                  LazyAllocator*          allocator,
+                                  VkDeviceCreateInfo*     deviceCreateInfo);
 
     class VkBasaltDevice
     {
@@ -113,15 +124,10 @@ namespace vkBasalt
         const VkDevice          m_device;
         const VkPhysicalDevice  m_physDevice;
 
-        VkBasaltDevice(const VkBasaltInstance* basaltInstance, VkPhysicalDevice physDevice, VkDevice device, PFN_vkGetDeviceProcAddr gdpa);
+        VkBasaltDevice(const VkBasaltInstance* basaltInstance, const VkBasaltDeviceCreateInfo* createInfo);
         ~VkBasaltDevice();
 
-        friend VkResult VkBasaltInstance::createDevice(VkPhysicalDevice             physDevice,
-                                                       const VkDeviceCreateInfo*    pCreateInfo,
-                                                       const VkAllocationCallbacks* pAllocator,
-                                                       VkBasaltDevice**             basaltDevice,
-                                                       VkDevice*                    pDevice,
-                                                       PFN_vkGetDeviceProcAddr      gdpa) const;
+        friend VkResult VkBasaltInstance::createDevice(VkBasaltDeviceCreateInfo* createInfo, VkBasaltDevice** basaltDevice) const;
 
         friend void VkBasaltInstance::destroyDevice(VkBasaltDevice* basaltDevice, const VkAllocationCallbacks* pAllocator) const;
     };
