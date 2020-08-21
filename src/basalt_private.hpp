@@ -90,6 +90,11 @@ namespace vkBasalt
                                   LazyAllocator*          allocator,
                                   VkDeviceCreateInfo*     deviceCreateInfo);
 
+    void ensureGraphicsQueue(const VkBasaltInstance* instance,
+                             VkPhysicalDevice        physDevice,
+                             LazyAllocator*          allocator,
+                             VkDeviceCreateInfo*     deviceCreateInfo);
+
     class VkBasaltDevice
     {
     public:

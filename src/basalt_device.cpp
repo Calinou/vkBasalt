@@ -43,6 +43,94 @@ namespace vkBasalt
         deviceCreateInfo->enabledExtensionCount   = exts.size();
     }
 
+    struct QueueFamilyInfo
+    {
+        uint32_t index;
+        uint32_t count;
+    };
+
+    static QueueFamilyInfo findGeneralQueueFamily(const VkBasaltInstance* instance, VkPhysicalDevice physDevice)
+    {
+        constexpr VkQueueFlags wantedFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
+
+        uint32_t queueFamilyCount = 0;
+
+        instance->vk().GetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+
+        instance->vk().GetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilyProperties.data());
+
+        uint32_t queueFamilyIndex = 0x70AD;
+        uint32_t queueCount       = 0;
+
+        VkQueueFlags currentFlags = VK_QUEUE_FLAG_BITS_MAX_ENUM;
+
+        for (uint32_t i = 0; i < queueFamilyProperties.size(); i++)
+        {
+            auto& queueFamily = queueFamilyProperties[i];
+            if (((queueFamily.queueFlags & wantedFlags) == wantedFlags) && queueFamily.queueFlags < currentFlags)
+            {
+                queueFamilyIndex = i;
+                queueCount       = queueFamily.queueCount;
+                currentFlags     = queueFamily.queueFlags;
+            }
+        }
+
+        if (queueFamilyIndex == 0x70AD)
+        {
+            Logger::err("could not find general queue family");
+        }
+
+        return {queueFamilyIndex, queueCount};
+    }
+
+    void
+    ensureGraphicsQueue(const VkBasaltInstance* instance, VkPhysicalDevice physDevice, LazyAllocator* allocator, VkDeviceCreateInfo* deviceCreateInfo)
+    {
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(deviceCreateInfo->pQueueCreateInfos,
+                                                              deviceCreateInfo->pQueueCreateInfos + deviceCreateInfo->queueCreateInfoCount);
+
+        QueueFamilyInfo generalFamily = findGeneralQueueFamily(instance, physDevice);
+
+        auto it = std::find_if(
+            queueCreateInfos.begin(), queueCreateInfos.end(), [&generalFamily](const auto& q) { return q.queueFamilyIndex == generalFamily.index; });
+
+        if (it == queueCreateInfos.end())
+        {
+            // we need one general queue for us
+            float* prio = allocator->alloc<float>();
+            *prio       = 1.0f;
+
+            queueCreateInfos.push_back({
+                .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .pNext            = nullptr,
+                .flags            = 0,
+                .queueFamilyIndex = generalFamily.index,
+                .queueCount       = 1,
+                .pQueuePriorities = prio,
+            });
+        }
+        else
+        {
+            if (it->queueCount < generalFamily.count)
+            {
+                // create one more queue if possible to avoid extern sync problems
+                it->queueCount++;
+                float* prios = allocator->alloc<float>(it->queueCount);
+
+                std::memcpy(prios, it->pQueuePriorities, (it->queueCount - 1) * sizeof(float));
+                prios[it->queueCount - 1] = 1.0f;
+            }
+        }
+
+        VkDeviceQueueCreateInfo* queueMem = allocator->alloc<VkDeviceQueueCreateInfo>(queueCreateInfos.size());
+        std::memcpy(queueMem, queueCreateInfos.data(), queueCreateInfos.size() * sizeof(VkDeviceQueueCreateInfo));
+
+        deviceCreateInfo->pQueueCreateInfos    = queueMem;
+        deviceCreateInfo->queueCreateInfoCount = queueCreateInfos.size();
+    }
+
     VkBasaltDevice::VkBasaltDevice(const VkBasaltInstance* basaltInstance, const VkBasaltDeviceCreateInfo* createInfo) :
         m_instance(basaltInstance), m_device(*createInfo->pDevice), m_physDevice(createInfo->physDevice)
     {

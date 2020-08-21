@@ -78,6 +78,7 @@ namespace vkBasalt
         LazyAllocator allocator;
 
         activateDeviceExtensions(this, ourCreateInfo.physDevice, &allocator, &deviceCreateInfo);
+        ensureGraphicsQueue(this, ourCreateInfo.physDevice, &allocator, &deviceCreateInfo);
 
         VkResult res = m_dispatch.CreateDevice(ourCreateInfo.physDevice, &deviceCreateInfo, ourCreateInfo.pAllocator, ourCreateInfo.pDevice);
         if (res != VK_SUCCESS)
