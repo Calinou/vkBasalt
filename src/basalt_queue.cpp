@@ -38,4 +38,34 @@ namespace vkBasalt
 
         return *this;
     }
+
+    VkBasaltCmdBuffer::VkBasaltCmdBuffer(VkBasaltQueue* queue) : m_queue(queue)
+    {
+        VkCommandBufferAllocateInfo allocInfo = {
+            .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext              = nullptr,
+            .commandPool        = m_queue->m_cmdPool,
+            .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
+
+        VkResult res = m_queue->device()->vk().AllocateCommandBuffers(m_queue->device()->get(), &allocInfo, &m_cmdBuffer);
+        ASSERT_VULKAN(res);
+        m_cmdBuffer->key = m_queue->device()->get()->key;
+
+        VkCommandBufferBeginInfo beginInfo = {
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext            = nullptr,
+            .flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+            .pInheritanceInfo = nullptr,
+        };
+
+        res = m_queue->device()->vk().BeginCommandBuffer(m_cmdBuffer, &beginInfo);
+        ASSERT_VULKAN(res);
+    }
+
+    VkBasaltCmdBuffer::~VkBasaltCmdBuffer()
+    {
+        m_queue->device()->vk().FreeCommandBuffers(m_queue->device()->get(), m_queue->m_cmdPool, 1, &m_cmdBuffer);
+    }
 } // namespace vkBasalt

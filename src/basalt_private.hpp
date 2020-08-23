@@ -40,6 +40,7 @@ namespace vkBasalt
     class VkBasaltInstance;
     class VkBasaltDevice;
     class VkBasaltQueue;
+    class VkBasaltCmdBuffer;
 
     struct VkBasaltDeviceCreateInfo
     {
@@ -163,9 +164,9 @@ namespace vkBasalt
             return m_queue;
         }
 
-        VkCommandPool cmdPool() const
+        VkBasaltDevice* device() const
         {
-            return m_cmdPool;
+            return m_device;
         }
 
         uint32_t family() const
@@ -178,5 +179,22 @@ namespace vkBasalt
         VkQueue         m_queue;
         VkCommandPool   m_cmdPool;
         uint32_t        m_family;
+
+        friend VkBasaltCmdBuffer;
+    };
+
+    class VkBasaltCmdBuffer
+    {
+    public:
+        VkBasaltCmdBuffer(VkBasaltQueue* queue);
+        ~VkBasaltCmdBuffer();
+        VkBasaltCmdBuffer(const VkBasaltCmdBuffer& other) = delete;
+        VkBasaltCmdBuffer& operator=(const VkBasaltCmdBuffer& other) = delete;
+        VkBasaltCmdBuffer(VkBasaltCmdBuffer&& other)                 = delete;
+        VkBasaltCmdBuffer& operator=(VkBasaltCmdBuffer&& other) = delete;
+
+    private:
+        VkBasaltQueue*  m_queue;
+        VkCommandBuffer m_cmdBuffer;
     };
 } // namespace vkBasalt
