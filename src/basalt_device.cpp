@@ -150,6 +150,19 @@ namespace vkBasalt
                 m_familyIndices[queue] = queueInfo->queueFamilyIndex;
             }
         }
+
+        // Get the last general queue
+        QueueFamilyInfo generalFamily = findGeneralQueueFamily(m_instance, m_physDevice);
+
+        auto it = std::find_if(
+            queueInfos, queueInfos + queueInfoCount, [&generalFamily](const auto q) { return q.queueFamilyIndex == generalFamily.index; });
+        assert(it != queueInfos + queueInfoCount);
+
+        VkQueue queue;
+        vk().GetDeviceQueue(m_device, it->queueFamilyIndex, it->queueCount - 1, &queue);
+        queue->key = m_device->key;
+
+        m_generalQueue = std::make_unique<VkBasaltQueue>(this, queue, it->queueFamilyIndex);
     }
 
     VkBasaltDevice::~VkBasaltDevice()

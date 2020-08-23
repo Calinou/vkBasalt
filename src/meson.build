@@ -5,6 +5,7 @@ vkBasalt_src = [
     'basalt.cpp',
     'basalt_device.cpp',
     'basalt_instance.cpp',
+    'basalt_queue.cpp',
     'logger.cpp',
 ]
 
