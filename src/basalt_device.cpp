@@ -136,6 +136,20 @@ namespace vkBasalt
     {
         m_dispatch = m_instance->vk();
         initDeviceTable(createInfo->gdpa, m_device, &m_dispatch);
+
+        const VkDeviceQueueCreateInfo* queueInfos     = createInfo->pCreateInfo->pQueueCreateInfos;
+        uint32_t                       queueInfoCount = createInfo->pCreateInfo->queueCreateInfoCount;
+
+        for (auto queueInfo = queueInfos; queueInfo < queueInfos + queueInfoCount; queueInfo++)
+        {
+            for (uint32_t index = 0; index < queueInfo->queueCount; index++)
+            {
+                VkQueue queue;
+                vk().GetDeviceQueue(m_device, queueInfo->queueFamilyIndex, index, &queue);
+
+                m_familyIndices[queue] = queueInfo->queueFamilyIndex;
+            }
+        }
     }
 
     VkBasaltDevice::~VkBasaltDevice()

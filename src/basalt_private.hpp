@@ -123,11 +123,18 @@ namespace vkBasalt
             return m_physDevice;
         }
 
+        uint32_t queueFamilyIndex(VkQueue queue) const
+        {
+            auto it = m_familyIndices.find(queue);
+            return it != m_familyIndices.end() ? it->second : ~0u;
+        }
+
     private:
-        VulkanDispatchTable     m_dispatch;
-        const VkBasaltInstance* m_instance;
-        const VkDevice          m_device;
-        const VkPhysicalDevice  m_physDevice;
+        VulkanDispatchTable                   m_dispatch;
+        const VkBasaltInstance*               m_instance;
+        const VkDevice                        m_device;
+        const VkPhysicalDevice                m_physDevice;
+        std::unordered_map<VkQueue, uint32_t> m_familyIndices;
 
         VkBasaltDevice(const VkBasaltInstance* basaltInstance, const VkBasaltDeviceCreateInfo* createInfo);
         ~VkBasaltDevice();
